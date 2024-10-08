@@ -1,0 +1,38 @@
+-- Create users table
+CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create daily_logs table
+CREATE TABLE daily_logs (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id),
+  date DATE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (user_id, date)
+);
+
+-- Create daily_scores table
+CREATE TABLE daily_scores (
+  id SERIAL PRIMARY KEY,
+  daily_log_id INTEGER REFERENCES daily_logs(id),
+  points INTEGER NOT NULL,
+  hands_played INTEGER NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Optional: Create games table for more detailed game tracking
+CREATE TABLE games (
+  id SERIAL PRIMARY KEY,
+  daily_score_id INTEGER REFERENCES daily_scores(id),
+  number_of_players INTEGER NOT NULL,
+  player_position INTEGER NOT NULL,
+  number_of_cards_dealt INTEGER NOT NULL,
+  final_score INTEGER NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);

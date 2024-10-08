@@ -12,9 +12,9 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<Login />} />
-        <Route path="/main-dashboard" element={<MainDashboard />} />
+        {/* <Route path="/main-dashboard" element={<MainDashboard />} />
         <Route path="/settings" element={<Settings />} />
-        <Route path="/game-display" element={<GameDisplay />} />
+        <Route path="/game-display" element={<GameDisplay />} /> */}
       </Routes>
     </Router>
   );
