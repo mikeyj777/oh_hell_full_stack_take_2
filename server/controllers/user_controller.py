@@ -5,6 +5,7 @@ import logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def get_user():
+    logging.debug("user_controller.py - get_user")
     data = request.get_json()
     name = data['name']
     try:

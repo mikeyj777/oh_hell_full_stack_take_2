@@ -9,7 +9,8 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`{ API_BASE_URL }/api/users`, {
+      console.log('in login handle submit.  name: ' + name);
+      const response = await fetch(`${API_BASE_URL}/api/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: name.toLowerCase() })
