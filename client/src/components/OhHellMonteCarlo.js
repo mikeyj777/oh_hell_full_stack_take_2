@@ -27,71 +27,86 @@ const OhHellMonteCarlo = () => {
       const minPlayers = 4, maxPlayers = 7, minRounds = 1, maxRounds = 13, numSimulations = 1000;
       const strategies = { basic: new BasicStrategy(), advanced: new AdvancedStrategy() };
       const results = { basic: [], advanced: [] };
+      let decrement = 0;
 
       for (let simNum = 0; simNum < numSimulations; simNum++) {
         for (let numPlayers = minPlayers; numPlayers <= maxPlayers; numPlayers++) {
           const maxCards = Math.min(Math.floor(52 / numPlayers), 13);
           for (let numRounds = minRounds; numRounds <= Math.min(maxRounds, maxCards); numRounds++) {
             for (const [strategyName, strategy] of Object.entries(strategies)) {
+              
               const game = new Game(numPlayers, numRounds);
-
+              
               for (let roundNum = 0; roundNum < numRounds; roundNum++) {
-                game.dealCards();
-                game.setTrump();
+                
+                for (let advStrategyBidDecrement = 0; advStrategyBidDecrement <= roundNum+1; advStrategyBidDecrement++) {
+                
+                  decrement = advStrategyBidDecrement;
+                  if (strategyName === 'basic') {
+                    decrement = 0;
+                  }
+                  
+                  game.dealCards(roundNum+1);
+                  game.setTrump();
 
-                const roundData = {
-                  simulation: simNum,
-                  strategy: strategyName,
-                  num_players: numPlayers,
-                  num_rounds: numRounds,
-                  current_round: roundNum + 1,
-                  player_hands: game.players.map(player => player.hand),
-                  player_bids: [],
-                  trump_suit: game.getTrump()
-                };
+                  const roundData = {
+                    simulation: simNum,
+                    strategy: strategyName,
+                    num_players: numPlayers,
+                    num_rounds: numRounds,
+                    current_round: roundNum + 1,
+                    player_hands: game.players.map(player => player.hand),
+                    player_bids: [],
+                    trump_suit: game.getTrump(),
+                    advanced_strategy_bid_decrement: decrement,
+                  };
 
-                // Bidding phase
-                for (let player = 0; player < numPlayers; player++) {
-                  const bid = strategy.bid(
-                    game.getPlayerHand(player),
-                    game.getTrump(),
-                    game.getNumCards(),
-                    player,
-                    game.getTotalBids(),
-                    numPlayers
-                  );
-                  game.placeBid(player, bid);
-                  roundData.player_bids.push(bid);
-                }
-
-                // Playing phase
-                for (let trickNum = 0; trickNum < game.getNumCards(); trickNum++) {
-                  const trickData = { ...roundData, trick_number: trickNum + 1, trick_action: [] };
-
+                  // Bidding phase
                   for (let player = 0; player < numPlayers; player++) {
-                    const card = strategy.play(
+                    const bid = strategy.bid(
                       game.getPlayerHand(player),
-                      game.getTrickCards(),
                       game.getTrump(),
-                      game.getPlayerBid(player),
-                      game.getPlayerTricks(player),
-                      game.getNumCards()
+                      game.getNumCards(),
+                      player,
+                      game.getTotalBids(),
+                      numPlayers,
+                      decrement,
                     );
-                    game.playCard(player, card);
-                    trickData.trick_action.push([player, card]);
+                    game.placeBid(player, bid);
+                    roundData.player_bids.push(bid);
                   }
 
-                  const winner = game.evaluateTrick();
-                  game.awardTrick(winner);
-                  trickData.trick_winner = winner;
+                  // Playing phase
+                  for (let trickNum = 0; trickNum < game.getNumCards(); trickNum++) {
+                    const trickData = { ...roundData, trick_number: trickNum + 1, trick_action: [] };
 
-                  simulationData.push(trickData);
+                    for (let player = 0; player < numPlayers; player++) {
+                      const card = strategy.play(
+                        game.getPlayerHand(player),
+                        game.getTrickCards(),
+                        game.getTrump(),
+                        game.getPlayerBid(player, decrement),
+                        game.getPlayerTricks(player),
+                        game.getNumCards()
+                      );
+                      game.playCard(player, card);
+                      trickData.trick_action.push([player, card]);
+                    }
+
+                    const winner = game.evaluateTrick();
+                    game.awardTrick(winner);
+                    trickData.trick_winner = winner;
+
+                    simulationData.push(trickData);
+                  }
+
+                  game.scoreRound();
+                
                 }
-
-                game.scoreRound();
               }
 
               results[strategyName].push(game.getFinalScores());
+              
             }
           }
         }
@@ -351,9 +366,7 @@ class Game {
   }
 
   // This method, self, deals cards to all players
-  dealCards() {
-    const maxCards = Math.floor(52 / this.numPlayers);
-    const numCards = Math.floor(Math.random() * Math.min(maxCards, 13)) + 1;
+  dealCards(numCards) {
     this.deck.shuffle();
     this.players.forEach(player => { player.hand = this.deck.deal(numCards); });
   }
@@ -417,7 +430,7 @@ class Game {
   getTrump() { return this.trump; }
   getNumCards() { return this.players[0].hand.length; }
   getTotalBids() { return this.players.reduce((sum, player) => sum + player.bid, 0); }
-  getPlayerBid(playerIndex) { return this.players[playerIndex].bid; }
+  getPlayerBid(playerIndex, decrement) { return this.players[playerIndex].bid; }
   getPlayerTricks(playerIndex) { return this.players[playerIndex].tricks; }
   getTrickCards() { return this.currentTrick.map(([_, card]) => card); }
 
@@ -480,7 +493,7 @@ class Deck {
 
 // You see, self, this BasicStrategy class implements a simple strategy for bidding and playing
 class BasicStrategy {
-  bid(hand, trump, numCards, playerPosition, totalBids, numPlayers) {
+  bid(hand, trump, numCards, playerPosition, totalBids, numPlayers, decrement) {
     const trumpCount = hand.filter(card => Math.floor(card / 13) === trump).length;
     const highCardCount = hand.filter(card => card % 13 >= 10).length;
     let bid = Math.round(trumpCount + highCardCount * 0.5);
@@ -504,7 +517,7 @@ class BasicStrategy {
 
 // Now, self, this AdvancedStrategy class implements a more sophisticated strategy
 class AdvancedStrategy {
-  bid(hand, trump, numCards, playerPosition, totalBids, numPlayers) {
+  bid(hand, trump, numCards, playerPosition, totalBids, numPlayers, decrement) {
     const trumpCount = hand.filter(card => Math.floor(card / 13) === trump).length;
     const highCardCount = hand.filter(card => card % 13 >= 10).length;
     const suitDistribution = [0, 1, 2, 3].map(suit => hand.filter(card => Math.floor(card / 13) === suit).length);
@@ -515,6 +528,9 @@ class AdvancedStrategy {
       const targetBids = numCards;
       if (Math.round(totalBids + bid) === targetBids) bid += Math.random() < 0.5 ? -0.5 : 0.5;
     }
+
+    bid -= decrement;
+
     return Math.max(0, Math.min(Math.round(bid), numCards));
   }
 
