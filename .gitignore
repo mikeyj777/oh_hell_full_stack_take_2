@@ -26,3 +26,5 @@ venv
 hostinger_vps.txt
 node_modules
 uploads
+
+conversation_*.*

@@ -6,6 +6,7 @@ import Login from './components/Login';
 import Settings from './components/Settings';
 import MainDashboard from './components/MainDashboard';
 import GameDisplay from './components/GameDisplay';
+import OhHellMonteCarlo from './components/OhHellMonteCarlo'
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/main-dashboard" element={<MainDashboard />} />
+        <Route path="/mc" element={<OhHellMonteCarlo />} />
         {/* <Route path="/settings" element={<Settings />} />
         <Route path="/game-display" element={<GameDisplay />} /> */}
       </Routes>
