@@ -27,25 +27,26 @@ const OhHellMonteCarlo = () => {
       const minPlayers = 4, maxPlayers = 7, minRounds = 1, maxRounds = 13, numSimulations = 1000;
       const strategies = { basic: new BasicStrategy(), advanced: new AdvancedStrategy() };
       const results = { basic: [], advanced: [] };
-      let decrement = 0;
 
       for (let simNum = 0; simNum < numSimulations; simNum++) {
         for (let numPlayers = minPlayers; numPlayers <= maxPlayers; numPlayers++) {
           const maxCards = Math.min(Math.floor(52 / numPlayers), 13);
           for (let numRounds = minRounds; numRounds <= Math.min(maxRounds, maxCards); numRounds++) {
             for (const [strategyName, strategy] of Object.entries(strategies)) {
-              
               const game = new Game(numPlayers, numRounds);
               
-              for (let roundNum = 0; roundNum < numRounds; roundNum++) {
-                
-                for (let advStrategyBidDecrement = 0; advStrategyBidDecrement <= roundNum+1; advStrategyBidDecrement++) {
-                
-                  decrement = advStrategyBidDecrement;
-                  if (strategyName === 'basic') {
-                    decrement = 0;
+              for (let decrement = 0; decrement < numRounds; decrement++) {
+
+                for (let roundNum = 0; roundNum < numRounds; roundNum++) {
+                  if (roundNum - decrement < 0) {
+                    continue;
                   }
-                  
+
+                  let decrement_for_play = decrement;
+                  if (strategyName === 'basic') {
+                    decrement_for_play = 0;
+                  }
+
                   game.dealCards(roundNum+1);
                   game.setTrump();
 
@@ -58,7 +59,7 @@ const OhHellMonteCarlo = () => {
                     player_hands: game.players.map(player => player.hand),
                     player_bids: [],
                     trump_suit: game.getTrump(),
-                    advanced_strategy_bid_decrement: decrement,
+                    advanced_strategy_decrement: decrement_for_play
                   };
 
                   // Bidding phase
@@ -70,7 +71,7 @@ const OhHellMonteCarlo = () => {
                       player,
                       game.getTotalBids(),
                       numPlayers,
-                      decrement,
+                      decrement_for_play
                     );
                     game.placeBid(player, bid);
                     roundData.player_bids.push(bid);
@@ -85,7 +86,7 @@ const OhHellMonteCarlo = () => {
                         game.getPlayerHand(player),
                         game.getTrickCards(),
                         game.getTrump(),
-                        game.getPlayerBid(player, decrement),
+                        game.getPlayerBid(player),
                         game.getPlayerTricks(player),
                         game.getNumCards()
                       );
@@ -101,12 +102,10 @@ const OhHellMonteCarlo = () => {
                   }
 
                   game.scoreRound();
-                
                 }
-              }
 
-              results[strategyName].push(game.getFinalScores());
-              
+                results[strategyName].push(game.getFinalScores());
+              }
             }
           }
         }
@@ -430,7 +429,7 @@ class Game {
   getTrump() { return this.trump; }
   getNumCards() { return this.players[0].hand.length; }
   getTotalBids() { return this.players.reduce((sum, player) => sum + player.bid, 0); }
-  getPlayerBid(playerIndex, decrement) { return this.players[playerIndex].bid; }
+  getPlayerBid(playerIndex) { return this.players[playerIndex].bid; }
   getPlayerTricks(playerIndex) { return this.players[playerIndex].tricks; }
   getTrickCards() { return this.currentTrick.map(([_, card]) => card); }
 
@@ -476,9 +475,11 @@ class Deck {
   }
 
   shuffle() {
-    for (let i = this.cards.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [this.cards[i], this.cards[j]] = [this.cards[j], this.cards[i]];
+    for (let shuffle_count = 0; shuffle_count < 7; shuffle_count++) {
+      for (let i = this.cards.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [this.cards[i], this.cards[j]] = [this.cards[j], this.cards[i]];
+      }
     }
   }
 
